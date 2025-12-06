@@ -50,7 +50,9 @@ lib/
 flutter pub get
 ```
 
-### 2. Configure Firebase
+### 2. Configure Firebase 
+
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=43ppR6T1KtY)
 
 #### Option A: Using FlutterFire CLI (Recommended)
 
