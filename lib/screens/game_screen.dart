@@ -19,28 +19,27 @@ class _GameScreenState extends State<GameScreen> {
   void _showResultDialog(String msg) {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Game Over"),
-            content: Text(msg),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _dialogShown = false; // 🔥 FIX: reset dialog flag
-                  context.read<GameProvider>().startNewGame();
-                },
-                child: const Text("Play Again"),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _dialogShown = false; // 🔥 reset
-                },
-                child: const Text("Close"),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: const Text("Game Over"),
+        content: Text(msg),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _dialogShown = false; // 🔥 FIX: reset dialog flag
+              context.read<GameProvider>().startNewGame();
+            },
+            child: const Text("Play Again"),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _dialogShown = false; // 🔥 reset
+            },
+            child: const Text("Close"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -53,12 +52,11 @@ class _GameScreenState extends State<GameScreen> {
       if (!_dialogShown && game.winner != "") {
         _dialogShown = true;
 
-        String message =
-            (game.winner == "X")
-                ? "${widget.player1} (X) Wins!"
-                : (game.winner == "O")
-                ? "${widget.player2} (O) Wins!"
-                : "It's a Tie!";
+        String message = (game.winner == "X")
+            ? "${widget.player1} (X) Wins!"
+            : (game.winner == "O")
+            ? "${widget.player2} (O) Wins!"
+            : "It's a Tie!";
 
         _showResultDialog(message);
       }
@@ -118,10 +116,9 @@ class _GameScreenState extends State<GameScreen> {
                         style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
-                          color:
-                              game.board[index] == "X"
-                                  ? Colors.red
-                                  : Colors.green,
+                          color: game.board[index] == "X"
+                              ? Colors.red
+                              : Colors.green,
                         ),
                       ),
                     ),
