@@ -1,114 +1,48 @@
 import 'package:flutter/material.dart';
-import '../models/match.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+String player1 = "Player 1";
+String player2 = "Player 2";
 
 class GameProvider extends ChangeNotifier {
-  // Text controllers
-  final TextEditingController player1Controller = TextEditingController();
-  final TextEditingController player2Controller = TextEditingController();
+  List<String> board = List.filled(9, "");
+  String currentTurn = "X";
+  String winner = "";
 
-  // Player names
-  String player1Name = "Player 1";
-  String player2Name = "Player 2";
-
-  // Scoreboard
   int xWins = 0;
   int oWins = 0;
   int ties = 0;
 
-  // Game data
-  List<String> board = List.filled(9, "");
-  String currentTurn = "X";
-  String winner = "";
-  String startingPlayer = "X";
+  // ✅ MATCH HISTORY LIST
+  List<Map<String, dynamic>> history = [];
 
-  // Update player names
-  void updateNames() {
-    player1Name =
-        player1Controller.text.isEmpty ? "Player 1" : player1Controller.text;
-
-    player2Name =
-        player2Controller.text.isEmpty ? "Player 2" : player2Controller.text;
-
-    notifyListeners();
-  }
-
-  // Start NEW match
-  void startNewGame() {
-    board = List.filled(9, "");
-    winner = "";
-    currentTurn = startingPlayer;
-    notifyListeners();
-  }
-
-  // Switch who starts
-  void toggleStartingPlayer() {
-    startingPlayer = (startingPlayer == "X") ? "O" : "X";
-    startNewGame();
-  }
-
-  // Play a move
   void playMove(int index) {
     if (board[index] != "" || winner != "") return;
 
     board[index] = currentTurn;
 
-    // Check winner
     if (_checkWinner(currentTurn)) {
       winner = currentTurn;
 
-      if (winner == "X") xWins++;
-      if (winner == "O") oWins++;
+      if (currentTurn == "X") {
+        xWins++;
+      } else {
+        oWins++;
+      }
 
-      // SAVE WINNER MATCH
-      FirebaseFirestore.instance
-          .collection("matches")
-          .add(
-            MatchModel(
-              player1: player1Name,
-              player2: player2Name,
-              board: board,
-              winner: winner,
-              startingPlayer: startingPlayer == "X" ? 1 : 2,
-              timestamp: Timestamp.now(),
-            ).toMap(),
-          );
-
-      notifyListeners();
-      return;
-    }
-
-    // Tie
-    if (!board.contains("")) {
+      _saveHistory(winner);
+    } else if (!board.contains("")) {
       winner = "Tie";
       ties++;
-
-      // SAVE TIE MATCH
-      FirebaseFirestore.instance
-          .collection("matches")
-          .add(
-            MatchModel(
-              player1: player1Name,
-              player2: player2Name,
-              board: board,
-              winner: "Tie",
-              startingPlayer: startingPlayer == "X" ? 1 : 2,
-              timestamp: Timestamp.now(),
-            ).toMap(),
-          );
-
-      notifyListeners();
-      return;
+      _saveHistory("Tie");
+    } else {
+      currentTurn = currentTurn == "X" ? "O" : "X";
     }
 
-    // Switch turn
-    currentTurn = (currentTurn == "X") ? "O" : "X";
     notifyListeners();
   }
 
-  // Winner logic
-  bool _checkWinner(String p) {
-    List<List<int>> winPatterns = [
+  bool _checkWinner(String player) {
+    const winPatterns = [
       [0, 1, 2],
       [3, 4, 5],
       [6, 7, 8],
@@ -120,12 +54,45 @@ class GameProvider extends ChangeNotifier {
     ];
 
     for (var pattern in winPatterns) {
-      if (board[pattern[0]] == p &&
-          board[pattern[1]] == p &&
-          board[pattern[2]] == p) {
+      if (board[pattern[0]] == player &&
+          board[pattern[1]] == player &&
+          board[pattern[2]] == player) {
         return true;
       }
     }
     return false;
+  }
+
+  // ✅ SAVE MATCH RESULT WITH TIME
+  //void _saveHistory(String result) {
+  //history.insert(0, {"result": result, "time": DateTime.now()});
+  //}
+  void _saveHistory(String result) {
+    String winnerName;
+
+    if (result == "X") {
+      winnerName = player1;
+    } else if (result == "O") {
+      winnerName = player2;
+    } else {
+      winnerName = "Tie";
+    }
+
+    history.insert(0, {
+      "symbol": result,
+      "winner": winnerName,
+      "time": DateTime.now(),
+    });
+  }
+
+  void startNewGame() {
+    board = List.filled(9, "");
+    winner = "";
+    notifyListeners();
+  }
+
+  void toggleStartingPlayer() {
+    currentTurn = currentTurn == "X" ? "O" : "X";
+    startNewGame();
   }
 }
