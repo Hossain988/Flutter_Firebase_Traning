@@ -1,46 +1,47 @@
-import 'package:flutter/foundation.dart';
-import '../models/user_model.dart';
-import '../services/auth_service.dart';
+// TODO Implement this library.
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Auth Provider for authentication state management
-/// 
-/// Students will learn:
-/// - Authentication state management
-/// - User session handling
-/// - Auth state streams
-class AuthProvider with ChangeNotifier {
-  // ignore: unused_field
-  final AuthService _authService = AuthService(); // Students will use this when implementing Firebase
+class AuthProvider extends ChangeNotifier {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  UserModel? _currentUser;
+  User? _user;
   bool _isLoading = false;
   String? _error;
 
-  // Getters
-  UserModel? get currentUser => _currentUser;
+  // 🔹 Getters (used in UI)
+  User? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get isAuthenticated => _currentUser != null;
 
   AuthProvider() {
-    // Listen to auth state changes
-    _initAuthListener();
+    _auth.authStateChanges().listen((user) {
+      _user = user;
+      notifyListeners();
+    });
   }
 
-  /// Initialize auth state listener
-  /// 
-  /// TODO: Students will implement this
-  /// - Listen to AuthService.authStateChanges stream
-  /// - Update _currentUser when auth state changes
-  void _initAuthListener() {
-    // TODO: Listen to _authService.authStateChanges
-    // _authService.authStateChanges.listen((user) {
-    //   _currentUser = user;
-    //   notifyListeners();
-    // });
+  // 🔐 LOGIN
+  Future<bool> signIn({required String email, required String password}) async {
+    _setLoading(true);
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      _error = null;
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _error = e.message;
+      return false;
+    } catch (e) {
+      _error = "Something went wrong. Try again.";
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
-  /// Sign up a new user
+  // 📝 SIGN UP
   Future<bool> signUp({
     required String email,
     required String password,
@@ -50,174 +51,66 @@ class AuthProvider with ChangeNotifier {
     String? bio,
     String? address,
   }) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    _setLoading(true);
     try {
-      // TODO: Call _authService.signUp() with all parameters
-      // _currentUser = await _authService.signUp(...);
-      // return true;
-      
-      // TEMPORARY: Mock authentication for development
-      // This allows students to test the UI before implementing Firebase
-      // Validate email format
-      if (!email.contains('@') || !email.contains('.')) {
-        _error = 'Please enter a valid email address';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      
-      // Validate password length
-      if (password.length < 6) {
-        _error = 'Password must be at least 6 characters';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      
-      // Create mock user (students will replace this with Firebase implementation)
-      _currentUser = UserModel(
-        uid: 'mock_user_${DateTime.now().millisecondsSinceEpoch}',
+      // Create Firebase Auth user
+      UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email,
-        displayName: '$firstName $lastName',
-        firstName: firstName,
-        lastName: lastName,
-        phoneNumber: phoneNumber,
-        bio: bio,
-        address: address,
-        createdAt: DateTime.now(),
+        password: password,
       );
-      
+
+      _user = cred.user;
+
+      // Save extra user info to Firestore
+      await _firestore.collection('users').doc(_user!.uid).set({
+        'uid': _user!.uid,
+        'email': email,
+        'firstName': firstName,
+        'lastName': lastName,
+        'phoneNumber': phoneNumber,
+        'bio': bio,
+        'address': address,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      _error = null;
       return true;
+    } on FirebaseAuthException catch (e) {
+      _error = e.message;
+      return false;
     } catch (e) {
-      _error = 'Sign up failed: $e';
+      _error = "Registration failed. Try again.";
       return false;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  /// Sign in existing user
-  Future<bool> signIn({
-    required String email,
-    required String password,
-  }) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // TODO: Call _authService.signIn()
-      // _currentUser = await _authService.signIn(email: email, password: password);
-      // return true;
-      
-      // TEMPORARY: Mock authentication for development
-      // This allows students to test the UI before implementing Firebase
-      // Validate email format
-      if (!email.contains('@') || !email.contains('.')) {
-        _error = 'Please enter a valid email address';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      
-      // Validate password length
-      if (password.length < 6) {
-        _error = 'Password must be at least 6 characters';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      
-      // Create mock user (students will replace this with Firebase implementation)
-      // Extract name from email for display
-      final emailParts = email.split('@');
-      final name = emailParts[0];
-      _currentUser = UserModel(
-        uid: 'mock_user_${email.hashCode}',
-        email: email,
-        displayName: name,
-        firstName: name.split('.').first.isEmpty ? name : name.split('.').first,
-        lastName: name.contains('.') ? name.split('.').last : name,
-        phoneNumber: '123-456-7890', // Mock phone number
-        createdAt: DateTime.now(),
-        lastLoginAt: DateTime.now(),
-      );
-      
-      return true;
-    } catch (e) {
-      _error = 'Sign in failed: $e';
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  /// Sign out current user
-  Future<void> signOut() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // TODO: Call _authService.signOut()
-      // await _authService.signOut();
-      _currentUser = null;
-    } catch (e) {
-      _error = 'Sign out failed: $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  /// Update user profile
-  Future<bool> updateProfile(UserModel user) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // TODO: Call _authService.updateProfile()
-      // await _authService.updateProfile(user);
-      // _currentUser = user;
-      return true;
-    } catch (e) {
-      _error = 'Update profile failed: $e';
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  /// Send password reset email
+  // 🔁 PASSWORD RESET
   Future<bool> sendPasswordResetEmail(String email) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    _setLoading(true);
     try {
-      // TODO: Call _authService.sendPasswordResetEmail()
-      // await _authService.sendPasswordResetEmail(email);
+      await _auth.sendPasswordResetEmail(email: email);
+      _error = null;
       return true;
-    } catch (e) {
-      _error = 'Failed to send password reset email: $e';
+    } on FirebaseAuthException catch (e) {
+      _error = e.message;
       return false;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  /// Clear error
-  void clearError() {
-    _error = null;
+  // 🚪 LOGOUT
+  Future<void> signOut() async {
+    await _auth.signOut();
+    _user = null;
+    notifyListeners();
+  }
+
+  // 🔄 Loading helper
+  void _setLoading(bool value) {
+    _isLoading = value;
     notifyListeners();
   }
 }
-
