@@ -78,7 +78,6 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
-
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -107,7 +106,7 @@ class _GameScreenState extends State<GameScreen> {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: const Color.fromARGB(255, 234, 253, 227),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -139,13 +138,10 @@ class _GameScreenState extends State<GameScreen> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-
                 Text("X (${widget.player1}) Wins: ${game.xWins}"),
                 Text("O (${widget.player2}) Wins: ${game.oWins}"),
                 Text("Ties: ${game.ties}"),
-
                 const SizedBox(height: 10),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
